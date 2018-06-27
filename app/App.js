@@ -1,26 +1,18 @@
 import React from 'react';
 import { View, StatusBar } from 'react-native';
 import { Scene, Router, Actions } from 'react-native-router-flux';
+import GLOBALS from './Globals'
 
+import Splash from './layouts/Splash';
 import Login from './layouts/Login';
-import Home from './layouts/Home';
 import Chats from './layouts/Chats';
 import Create from './layouts/Create';
 import Chat from './layouts/Chat';
 import Search from './layouts/Search';
 import ChatDetails from './layouts/ChatDetails';
 import Profile from './layouts/Profile';
-
-import Sample1 from './test/Sample1';
-import Sample2 from './test/Sample2';
-import Sample3 from './test/Sample3';
-import Sample4 from './test/Sample4';
-import Sample5 from './test/Sample5';
-import Sample6 from './test/Sample6';
-import Sample7 from './test/Sample7';
-import Sample8 from './test/Sample8';
-import Sample9 from './test/Sample9';
-import Sample10 from './test/Sample10';
+import UserChat from './layouts/UserChat';
+import Signup from './layouts/Signup';
 
 export default App = () => {
 
@@ -31,30 +23,27 @@ export default App = () => {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar
+        backgroundColor={GLOBALS.COLOR.PRIMARYDARK}
         barStyle="light-content"
       />
-      <Router tintColor="#841584" sceneStyle={{ backgroundColor: '#fff' }} backAndroidHandler={onBackAndroid}>
+      <Router
+        navigationBarStyle={{ backgroundColor: GLOBALS.COLOR.PRIMARY }}
+        titleStyle={{ textAlign: 'center', flex: 1 }}
+        tintColor={GLOBALS.COLOR.WHITE}
+        sceneStyle={{ backgroundColor: '#fff' }}
+        backAndroidHandler={onBackAndroid}
+      >
         <Scene key="root">
+          <Splash key="splash" hideNavBar={true} initial component={Splash} />
           <Scene key="login" hideNavBar={true} component={Login} />
-          <Scene key="home" title="Home" component={Home} />
-          <Scene key="chats" title="Chats" component={Chats} />
-          <Scene key="creategroup" title="Create" component={Create} />
-          <Scene key="chat" component={Chat} />
-          <Scene key="search" title="Search" component={Search} />
-          <Scene key="chatdetails" component={ChatDetails} />
-          <Scene key="profile" component={Profile} />
-
-
-          <Scene key="sample1" title="Sample1" component={Sample1} />
-          <Scene key="sample2" title="Sample2" component={Sample2} />
-          <Scene key="sample3" title="Sample3" component={Sample3} />
-          <Scene key="sample4" title="Sample4" component={Sample4} />
-          <Scene key="sample5" title="Sample5" component={Sample5} />
-          <Scene key="sample6" title="Sample6" component={Sample6} />
-          <Scene key="sample7" title="Sample7" component={Sample7} />
-          <Scene key="sample8" title="Sample8" component={Sample8} />
-          <Scene key="sample9" title="Sample9" component={Sample9} />
-          <Scene key="sample10" title="Sample10" component={Sample10} />
+          <Scene key="chats" hideNavBar={true} title="Chats" component={Chats} />
+          <Scene key="creategroup" hideNavBar={true} title="Create" component={Create} />
+          <Scene key="chat" hideNavBar={true} title="Chat" component={Chat} />
+          <Scene key="search" hideNavBar={true} title="Search" component={Search} />
+          <Scene key="chatdetails" hideNavBar={true} title="Chat Details" component={ChatDetails} />
+          <Scene key="profile" hideNavBar={true} title="Profile" component={Profile} />
+          <Scene key="userchat" hideNavBar={true} title="User Chat" component={UserChat} />
+          <Scene key="signup" hideNavBar={true} title="Signup" component={Signup} />
 
         </Scene>
       </Router>

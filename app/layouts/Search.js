@@ -3,23 +3,33 @@ import React, { Component } from 'react';
 import {
     StyleSheet,
     Text,
+    TextInput,
     View,
-    ActivityIndicator
+    Modal,
+    ActivityIndicator,
+    TouchableHighlight
 } from 'react-native';
 import firebase from '../Firebase';
-import { List, ListItem } from 'native-base';
+import { Container, Content, List, ListItem, Left, Body, Title, Item, Header, Input, Right, Icon, Button } from 'native-base';
 import { Actions } from 'react-native-router-flux';
+import CustomThumbnail from '../components/CustomThumbnail';
+import Utils from '../Utils';
+import AppHeader from '../components/AppHeader';
+import Globals from '../Globals';
+
+const initialState = {
+    error: null,
+    isLoading: true,
+    chats: [],
+    isSearching: false,
+    modalVisible: false,
+}
 
 export default class Search extends Component {
 
-    state = {
-        error: null,
-        isLoading: true,
-        chats: []
-    }
+    state = initialState;
 
     componentWillMount = () => {
-        var user = firebase.auth().currentUser;
 
         firebase.database().ref("publicChats/").once("value", (snapshot) => {
             snapshot.forEach((chatsSnapshot) => {
@@ -49,31 +59,125 @@ export default class Search extends Component {
         });
     }
 
+    renderChatList = (chats) => {
+        return (
+            <List>
+                {
+                    chats.map((chat) => (
+                        <ListItem avatar key={chat.chatId} onPress={() => Actions.chatdetails({ chat: chat })}>
+                            <Left>
+                                <CustomThumbnail text={Utils.getInitials(chat.title)} />
+                            </Left>
+                            <Body>
+                                <Text style={{ fontWeight: 'bold' }}>{chat.title}</Text>
+                                <Text style={{ fontSize: 12 }}>Created by: {chat.createdBy}</Text>
+                            </Body>
+                            <Right />
+                        </ListItem>
+                    ))
+                }
+            </List>
+        )
+    }
+
+    setModalVisible(visible) {
+        this.setState({ modalVisible: visible });
+    }
 
     render() {
 
-        if (!this.state.isLoading && !this.state.error) {
-            return (
-
-                <List>
-                    {
-                        this.state.chats.map((chat) => (
-                            <ListItem key={chat.id} onPress={() => Actions.chat({ chat: chat })}>
-                                <Text>{chat.title}</Text>
-                            </ListItem>
-                        ))
-                    }
-                </List>
-            )
-        }
         return (
-            <View style={styles.container}>
 
-                {
-                    this.state.isLoading ? <ActivityIndicator size="small" color="#00ff00" /> : this.state.error ? <Text>{this.state.error}</Text> : null
-                }
+            <Container>
+                <AppHeader searchBar rounded>
+                    <Left style={{ flex: 1 }}>
+                        <Button transparent onPress={() => Actions.pop()}>
+                            <Icon style={{ color: '#fff' }} name="arrow-back" />
+                        </Button>
+                    </Left>
+                    <Body style={{ flex: 3, justifyContent: 'center', alignItems: 'center' }}>
+                        {
+                            this.state.isSearching ? (
+                                <TextInput autoFocus={true} underlineColorAndroid="#e6e6e6" placeholderTextColor="#e6e6e6" selectionColor="#fff" style={{
+                                    color: '#fff',
+                                    alignSelf: 'stretch',
+                                }} placeholder="Search" />
+                            ) : <Title>New Group</Title>
+                        }
+                    </Body>
+                    <Right style={{ flex: 1 }}>
 
-            </View>
+                        {
+                            this.state.isSearching ? (
+                                <Button transparent onPress={() => this.setState({ isSearching: false })}>
+                                    <Icon style={{ color: '#fff' }} name="close" />
+                                </Button>
+                            ) : (
+                                    <Button transparent onPress={() => this.setState({ isSearching: true })}>
+                                        <Icon style={{ color: '#fff' }} name="search" />
+                                    </Button>
+                                )
+                        }
+                    </Right>
+                </AppHeader>
+                <Content>
+                    <Modal
+                        animationType="slide"
+                        transparent={false}
+                        visible={this.state.modalVisible}
+                        onRequestClose={() => console.log("onRequestClose")}>
+                        <View>
+                            <ListItem>
+                                <Left>
+                                    <Text style={{ fontWeight: 'bold' }}>Filter groups</Text>
+                                </Left>
+                                <Right>
+                                    <Button transparent onPress={() => this.setModalVisible(false)}>
+                                        <Icon color="#000" name="close" />
+                                    </Button>
+                                </Right>
+                            </ListItem>
+
+                            <Text>TODO</Text>
+                        </View>
+                    </Modal>
+                    <View style={styles.container}>
+                        <List>
+                            <ListItem icon noBorder style={{ marginTop: 16, marginBottom: 0, borderBottomWidth: 0 }} onPress={() => Actions.creategroup()}>
+                                <Left>
+                                    <Icon name="people" />
+                                </Left>
+                                <Body>
+                                    <Text>Create New Group</Text>
+                                </Body>
+                                <Right />
+                            </ListItem>
+
+                            <ListItem>
+                                <Left>
+                                    <Text style={{ fontWeight: 'bold' }}>Dicover groups</Text>
+                                </Left>
+                                <Right>
+                                    <Button transparent onPress={() => this.setModalVisible(true)}>
+                                        <Icon color="#000" name="options" />
+                                    </Button>
+                                </Right>
+                            </ListItem>
+                        </List>
+
+                        {
+                            !this.state.isLoading && !this.state.error ?
+                                this.renderChatList(this.state.chats) :
+                                this.state.isLoading ?
+                                    <ActivityIndicator size="large" color={Globals.COLOR.ACCENT} /> :
+                                    this.state.error ?
+                                        <Text>{this.state.error}</Text> :
+                                        null
+                        }
+                    </View>
+
+                </Content>
+            </Container>
         );
     }
 }
@@ -81,8 +185,5 @@ export default class Search extends Component {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F5FCFF',
     },
 });

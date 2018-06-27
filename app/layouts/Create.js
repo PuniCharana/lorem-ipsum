@@ -4,17 +4,20 @@ import {
     StyleSheet,
     View,
     TextInput,
-    Button,
+    TouchableOpacity
 } from 'react-native';
-import firebase from '../Firebase';
-import { Body, ListItem, CheckBox, Text } from 'native-base';
-
+import Globals from '../Globals';
+import { Container, Content, Left, Body, Textarea, Title, List, ListItem, CheckBox, Text, Right, Icon, Button } from 'native-base';
+import { Actions } from 'react-native-router-flux';
+import firebase from 'firebase';
 
 const initialState = {
     error: null,
     title: null,
     location: null,
-    public: true
+    public: true,
+    description: null,
+    autocompletePlaces: [],
 }
 
 export default class Create extends Component {
@@ -22,7 +25,7 @@ export default class Create extends Component {
 
     createNewGroup = () => {
         console.log(this.state);
-        if (this.state.title && this.state.location) {
+        if (this.state.title && this.state.location && this.state.description) {
             var chatRef = firebase.database().ref("chats");
 
             var user = firebase.auth().currentUser;
@@ -31,10 +34,15 @@ export default class Create extends Component {
             var chat = {};
             chat.title = this.state.title;
             chat.location = this.state.location;
-            chat.createAt = Date.now();
-            chat.public = this.state.public;
+            chat.locationId = this.state.locationId;
+            chat.description = this.state.description;
+            chat.createdAt = Date.now().toString();
+            chat.lastUpdated = Date.now().toString();
+            chat.lastMessage = "tap to chat"
+            chat.type = this.state.public ? "public" : "private";
             chat.chatId = chatId;
-            chat.createdBy = user.uid
+            chat.createdBy = user.displayName;
+            chat.createdById = user.uid
 
             var updates = {};
             updates['/chats/' + chatId] = chat; // Contain chat details
@@ -49,6 +57,7 @@ export default class Create extends Component {
                 .then(() => {
                     console.log("Done creating new group");
                     this.setState(initialState);
+                    Actions.popTo("chats")
                 }, (error) => {
                     console.log(error);
                 });
@@ -56,7 +65,7 @@ export default class Create extends Component {
         } else {
             console.log("Title & Location cannot be empty");
             this.setState({
-                error: "Title & Location cannot be empty"
+                error: "Title, location & description cannot be empty"
             })
         }
     }
@@ -67,47 +76,129 @@ export default class Create extends Component {
         })
     }
 
+    getPlaces = (text) => {
+
+        // https://maps.googleapis.com/maps/api/place/autocomplete/json?input=Vict&types=geocode&language=fr&key=YOUR_API_KEY
+
+
+        var url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=' + text + '&key=AIzaSyAmXYP7FoNnYafHd2jB0AyQHj3d4-YHDkI'
+
+        fetch(url).then((response) => response.json())
+            .then((responseJson) => {
+                console.log(responseJson);
+                this.setState({
+                    autocompletePlaces: responseJson.predictions
+                })
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    }
+
+    selectPlace = (place) => {
+        this.setState({
+            location: place.description,
+            locationId: place.id,
+            autocompletePlaces: []
+        })
+    }
+
+    renderAutoComplete = (places = []) => {
+        return (
+            <List>
+                {
+                    places.map((place) => (
+                        <ListItem key={place.id} onPress={() => this.selectPlace(place)}>
+                            <Text>{place.description}</Text>
+                        </ListItem>
+                    ))
+                }
+            </List>
+        )
+    }
+
     render() {
 
         return (
-            <View style={styles.container}>
 
-                <Text>Create Group</Text>
-
-                <TextInput
-                    style={{ marginTop: 10, width: 200, padding: 8, height: 40, borderColor: 'gray', borderWidth: 1 }}
-                    onChangeText={(title) => this.setState({ title })}
-                    value={this.state.title}
-                    placeholder="Title"
-                />
-
-                <TextInput
-                    style={{ marginTop: 10, width: 200, padding: 8, height: 40, borderColor: 'gray', borderWidth: 1 }}
-                    onChangeText={(location) => this.setState({ location })}
-                    value={this.state.location}
-                    placeholder="Location"
-                />
-
-                <ListItem style={{ width: 200 }} onPress={() => this.changeMode()}>
-                    <CheckBox checked={!this.state.public} />
-                    <Body>
-                        <Text>Make Private</Text>
+            <Container>
+                <AppHeader>
+                    <Left style={{ flex: 1 }}>
+                        <Button iconLeft transparent onPress={() => Actions.pop()}>
+                            <Icon style={{ color: '#fff' }} name='arrow-back' />
+                        </Button>
+                    </Left>
+                    <Body style={{ flex: 3, justifyContent: 'center', alignItems: 'center' }}>
+                        <Title style={{ color: Globals.COLOR.WHITE }} >Create</Title>
                     </Body>
-                </ListItem>
+                    <Right style={{ flex: 1 }} />
+                </AppHeader>
+                <Content>
 
-                <Button
-                    style={{ marginTop: 10, }}
-                    onPress={() => this.createNewGroup()}
-                    title="Create"
-                    color="#841584"
-                />
+                    <View style={styles.container}>
 
-                {
-                    this.state.error ? <Text style={{ marginTop: 10, }}>{this.state.error}</Text> : null
-                }
+                        <TextInput
+                            style={[styles.input, { marginTop: 10, width: 200, padding: 8, height: 40, }]}
+                            onChangeText={(title) => this.setState({ title, error: null })}
+                            value={this.state.title}
+                            placeholder="Title"
+                        />
 
+                        <TextInput
+                            style={[styles.input, { marginTop: 10, width: 200, padding: 8, height: 40, }]}
+                            value={this.state.location}
+                            onChangeText={(location) => {
+                                this.setState({ location, error: null })
+                                this.getPlaces(location);
+                            }}
+                            value={this.state.location}
+                            placeholder="Location"
+                        />
 
-            </View>
+                        {
+                            this.renderAutoComplete(this.state.autocompletePlaces)
+                        }
+
+                        <Textarea
+                            style={[styles.input, { marginTop: 10, width: 200, padding: 8, }]}
+                            onChangeText={(description) => this.setState({ description, error: null })}
+                            value={this.state.description}
+                            selectionColor={Globals.COLOR.BLACK}
+                            placeholderTextColor={Globals.COLOR.GRAY}
+                            rowSpan={3}
+                            placeholder="Description"
+                        />
+
+                        <ListItem noBorder style={{ width: 200, borderBottomWidth: 0 }}>
+                            <CheckBox checked={!this.state.public} onPress={() => this.changeMode()} />
+                            <Body>
+                                <Text> Make Private</Text>
+                            </Body>
+                        </ListItem>
+
+                        {
+                            this.state.error ? <Text style={{
+                                padding: 16,
+                                width: 220,
+                                color: 'red'
+                            }}>{this.state.error}</Text> : null
+                        }
+
+                        <View style={{ width: 220, marginTop: 10,}}>
+                            <TouchableOpacity onPress={() => this.createNewGroup()} style={{ 
+                                alignSelf: 'flex-end',
+                                padding: 10,
+                                borderRadius: 50,
+                                backgroundColor: Globals.COLOR.PRIMARY
+                             }}>
+                                <Text style={{color: '#fff'}}>Create</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                    </View>
+                </Content>
+            </Container>
+
         );
     }
 }
@@ -117,6 +208,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F5FCFF',
     },
+
+    input: { color: Globals.COLOR.BLACK, borderBottomWidth: 1, borderBottomColor: Globals.COLOR.GRAY }
 });
